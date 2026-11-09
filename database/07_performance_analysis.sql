@@ -1,0 +1,133 @@
+
+-- =====================================================
+-- 07_performance_analysis.sql
+-- Project: Enterprise Database Modernization
+-- Purpose: Analyze SQL query performance
+-- =====================================================
+
+
+-- 1. Enable execution plan output
+-- This statement is used in SQL*Plus and SQLcl.
+-- In FreeSQL, use the EXPLAIN PLAN and DBMS_XPLAN
+-- queries below instead.
+
+
+-- 2. Analyze customer search by email
+
+EXPLAIN PLAN FOR
+SELECT
+    CUSTOMER_ID,
+    CUSTOMER_NAME,
+    EMAIL
+FROM CUSTOMERS
+WHERE EMAIL = 'ana.garcia@example.com';
+
+SELECT *
+FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+
+-- 3. Analyze orders by customer
+
+EXPLAIN PLAN FOR
+SELECT
+    ORDER_ID,
+    CUSTOMER_ID,
+    ORDER_DATE,
+    STATUS
+FROM SALES_ORDERS
+WHERE CUSTOMER_ID = 1;
+
+SELECT *
+FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+
+-- 4. Analyze orders by date
+
+EXPLAIN PLAN FOR
+SELECT
+    ORDER_ID,
+    ORDER_DATE,
+    STATUS
+FROM SALES_ORDERS
+WHERE ORDER_DATE >= DATE '2026-01-01';
+
+SELECT *
+FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+
+-- 5. Analyze a query with multiple JOINs
+
+EXPLAIN PLAN FOR
+SELECT
+    C.CUSTOMER_NAME,
+    B.BRANCH_NAME,
+    SO.ORDER_DATE,
+    P.PRODUCT_NAME,
+    OI.QUANTITY,
+    OI.UNIT_PRICE
+FROM SALES_ORDERS SO
+INNER JOIN CUSTOMERS C
+    ON SO.CUSTOMER_ID = C.CUSTOMER_ID
+INNER JOIN BRANCHES B
+    ON SO.BRANCH_ID = B.BRANCH_ID
+INNER JOIN ORDER_ITEMS OI
+    ON SO.ORDER_ID = OI.ORDER_ID
+INNER JOIN PRODUCTS P
+    ON OI.PRODUCT_ID = P.PRODUCT_ID
+WHERE SO.STATUS = 'COMPLETED';
+
+SELECT *
+FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+
+-- 6. Analyze aggregation performance
+
+EXPLAIN PLAN FOR
+SELECT
+    SO.CUSTOMER_ID,
+    COUNT(DISTINCT SO.ORDER_ID) AS TOTAL_ORDERS,
+    SUM(OI.QUANTITY * OI.UNIT_PRICE) AS TOTAL_SALES
+FROM SALES_ORDERS SO
+INNER JOIN ORDER_ITEMS OI
+    ON SO.ORDER_ID = OI.ORDER_ID
+GROUP BY SO.CUSTOMER_ID;
+
+SELECT *
+FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+
+-- 7. Review table statistics
+
+SELECT
+    TABLE_NAME,
+    NUM_ROWS,
+    BLOCKS,
+    LAST_ANALYZED
+FROM USER_TABLES
+WHERE TABLE_NAME IN (
+    'CUSTOMERS',
+    'SALES_ORDERS',
+    'ORDER_ITEMS',
+    'PRODUCTS',
+    'BRANCHES'
+)
+ORDER BY TABLE_NAME;
+
+
+-- 8. Review index statistics
+
+SELECT
+    INDEX_NAME,
+    TABLE_NAME,
+    NUM_ROWS,
+    DISTINCT_KEYS,
+    LAST_ANALYZED
+FROM USER_INDEXES
+WHERE TABLE_NAME IN (
+    'CUSTOMERS',
+    'SALES_ORDERS',
+    'ORDER_ITEMS',
+    'PRODUCTS',
+    'BRANCHES'
+)
+ORDER BY TABLE_NAME, INDEX_NAME;
